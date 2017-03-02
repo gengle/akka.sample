@@ -45,6 +45,7 @@ namespace ConsoleApp1.Actors
         {
             cwsAbbreviation = new CwsAbbreviation(abbreviation);
             this.Disabled = disabled;
+            Context.ActorOf(Props.Create(() => new CapabilityCoordinatorActor()), "capabilities");
             this.Receive<SqlDataInfo>(x =>
             {
                 sqlInfo = x;
@@ -60,6 +61,16 @@ namespace ConsoleApp1.Actors
             this.Receive<LogStatus>(x =>
             {
                 Console.WriteLine($"{cwsAbbreviation.Name} Disabled:{Disabled}");
+                foreach (var child in Context.GetChildren())
+                    child.Forward(x);
+            });
+            this.Receive<DisableWorkPartner>(x =>
+            {
+                Disabled = true;
+            });
+            this.Receive<EnableWorkPartner>(x =>
+            {
+                Disabled = false;
             });
         }
     }
@@ -74,11 +85,26 @@ namespace ConsoleApp1.Actors
 
         }
     }
-
     public class NewWorkPartner
     {
         public string Name { get; }
         public NewWorkPartner(string name)
+        {
+            this.Name = name;
+        }
+    }
+    public class DisableWorkPartner
+    {
+        public string Name { get; }
+        public DisableWorkPartner(string name)
+        {
+            this.Name = name;
+        }
+    }
+    public class EnableWorkPartner
+    {
+        public string Name { get; }
+        public EnableWorkPartner(string name)
         {
             this.Name = name;
         }
@@ -103,11 +129,27 @@ namespace ConsoleApp1.Actors
             {
                 var actor = Context.ActorSelection("/user/metaCoordinator/*");
                 actor.Tell(x);
+            });
+            Receive<DisableWorkPartner>(x =>
+            {
+                var actor = Context.Child(x.Name);
+                actor.Forward(x);
+            });
+            Receive<EnableWorkPartner>(x =>
+            {
+                var actor = Context.Child(x.Name);
+                actor.Forward(x);
+            });
+        }
+    }
 
-                //foreach (var wp in _workPartners)
-                //{
-                //    Console.WriteLine($"Partner: {wp}");
-                //}
+    public class CapabilityCoordinatorActor: ReceiveActor
+    {
+        public CapabilityCoordinatorActor()
+        {
+            Receive<LogStatus>(x =>
+            {
+                Console.WriteLine(Self.Path);
             });
         }
     }

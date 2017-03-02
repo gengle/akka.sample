@@ -29,7 +29,6 @@ akka {
         }
     }";
             var config = ConfigurationFactory.ParseString(akkaConfig);
-            // Create a new actor system (a container for your actors)
             var system = ActorSystem.Create("schedulerSystem", config);
             var coordinatorProps = Props.Create<MetaCoordinatorActor>();
             var coordinator = 
@@ -37,12 +36,15 @@ akka {
            
             coordinator.Tell(new NewWorkPartner("CCI"));
             coordinator.Tell(new NewWorkPartner("AMI"));
+            coordinator.Tell(new EnableWorkPartner("CCI"));
 
-            Thread.Sleep(1000);
-            //coordinator.Tell(new LogStatus());
             
-            var actor= system.ActorSelection("/user/metaCoordinator/CCI");
-            actor.Tell(new UsageState(disabled: false));
+            //coordinator.Ask(new APCheckWriterCapability());
+            //coordinator.Tell(new LogStatus());
+            //var actor= system.ActorSelection("/user/metaCoordinator/CCI");
+            //actor.Tell(new UsageState(disabled: false));
+
+            
 
             coordinator.Tell(new LogStatus());
             system.WhenTerminated.Wait();
